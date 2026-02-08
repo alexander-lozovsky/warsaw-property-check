@@ -1,0 +1,11 @@
+---
+import { getSecret } from "astro:env/server";
+import Layout from "../layouts/Layout.astro";
+import { Map } from "../components/Map";
+
+const MAP_API_KEY = getSecret("MAPTILER_API_KEY") as string;
+---
+
+<Layout>
+  <Map mapsApiKey={MAP_API_KEY} client:only="solid-js" />
+</Layout>
