@@ -10,4 +10,5 @@ export default defineConfig({
     plugins: [tailwindcss()],
   },
   integrations: [solid({ devtools: true })],
+  output: "server",
 });
