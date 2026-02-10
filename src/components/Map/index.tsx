@@ -18,6 +18,7 @@ import {
   createEffect,
 } from "solid-js";
 import { WARSAW_BOUNDS, WARSAW_CENTER_COORDINATES } from "./constants";
+import type { DistanceResponse, PlacesResponse } from "../../types";
 
 type Props = {
   mapsApiKey: string;
@@ -36,7 +37,7 @@ export const Map: Component<Props> = (_props) => {
 
   onMount(() => {
     const map = new MaptilerMap({
-      container: "map", // container's id or the HTML element to render the map
+      container: "map",
       style: MapStyle.STREETS,
       center: [WARSAW_CENTER_COORDINATES.lon, WARSAW_CENTER_COORDINATES.lat],
       zoom: 11,
@@ -58,6 +59,7 @@ export const Map: Component<Props> = (_props) => {
       setAddressResults(null);
     }
   };
+
   createEffect(async () => {
     const address = selectedAddress();
 
@@ -79,14 +81,28 @@ export const Map: Component<Props> = (_props) => {
       const response = await fetch(
         `/api/places?lat=${center[1]}&lon=${center[0]}`,
       );
-      const data = await response.json();
+      const data = (await response.json()) as PlacesResponse;
 
       const stopMarkers: Marker[] = [];
       data.stops.forEach(({ name, type, lat, lon }) => {
+        const popup = new Popup({ offset: 25 }).setHTML(
+          `<div><p>${name}</p></div>`,
+        );
+
         const el = document.createElement("div");
         el.classList.add(type);
 
-        const popup = new Popup({ offset: 25 }).setText(name);
+        const onClick = async () => {
+          const response = await fetch(
+            `/api/distance?from=${center[1]},${center[0]}&to=${lat},${lon}`,
+          );
+          const distance = (await response.json()) as DistanceResponse;
+          popup.setHTML(
+            `<div><p>${name}</p><p>${distance.distance}</p><p>${distance.time}</p></div>`,
+          );
+          console.log(distance);
+        };
+        el.onclick = onClick;
 
         const marker = new Marker({ element: el })
           .setLngLat([lon, lat])
@@ -103,7 +119,7 @@ export const Map: Component<Props> = (_props) => {
       <div class="absolute top-1.5 left-3 z-10 bg-white rounded-lg">
         <input
           type="text"
-          class="border p-3  w-[300px] rounded-lg"
+          class="border p-3 w-75 rounded-lg"
           placeholder="Address"
           onKeyUp={onInputKeydown}
           ref={inputRef}
@@ -118,7 +134,7 @@ export const Map: Component<Props> = (_props) => {
               };
               return (
                 <button
-                  class="block p-3 w-[300px] hover:underline text-start"
+                  class="block p-3 w-75 hover:underline text-start"
                   onClick={onAddressSelect}
                 >
                   {it.place_name}

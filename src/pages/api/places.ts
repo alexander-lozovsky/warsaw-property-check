@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { getSecret } from "astro:env/server";
+import type { GeoapifyPlacesResponse, PlacesResponse, Stop } from "../../types";
 
 const GEOAPIFY_KEY = getSecret("GEOAPIFY_KEY");
 const placesApi = "https://api.geoapify.com/v2/places";
@@ -19,15 +20,12 @@ export const GET: APIRoute = async ({ url }) => {
     limit: "10",
   } as Record<string, string>);
   apiUrl.search = search.toString();
-  const results = await fetch(apiUrl);
-  const data = await results.json();
 
-  const places: {
-    type: "tram" | "metro";
-    name: string;
-    lat: number;
-    lon: number;
-  }[] = [];
+  const results = await fetch(apiUrl);
+  const data = (await results.json()) as GeoapifyPlacesResponse;
+
+  const places: Stop[] = [];
+
   data.features.forEach(
     async ({ properties: { name, lat, lon, categories } }) => {
       if (categories.some((it) => it === "public_transport.tram")) {
@@ -51,9 +49,9 @@ export const GET: APIRoute = async ({ url }) => {
     },
   );
 
-  return new Response(
-    JSON.stringify({
-      stops: places,
-    }),
-  );
+  const response: PlacesResponse = {
+    stops: places,
+  };
+
+  return new Response(JSON.stringify(response));
 };
